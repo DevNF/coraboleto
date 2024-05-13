@@ -16,6 +16,6 @@
     },
     "minimum-stability": "stable",
     "require": {
-    	"nfhub/common": "dev-master"
+    	"nfhub/common": "dev-stable"
     }
 }
