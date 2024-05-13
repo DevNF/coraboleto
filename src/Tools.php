@@ -1,5 +1,5 @@
 <?php
-namespace NFHub\PlugBoleto;
+namespace NFHub\CoraBoleto;
 
 use Exception;
 use NFHub\Common\Tools as ToolsBase;
@@ -8,21 +8,21 @@ use CURLFile;
 /**
  * Classe Tools
  *
- * Classe responsável pela implementação com a API de boletos do NFHub
+ * Classe responsável pela implementação com a API de boletos do Banco Cora
  *
  * @category  NFHub
- * @package   NFHub\PlugBoleto\Tools
- * @author    Jefferson Moreira <jeematheus at gmail dot com>
- * @copyright 2020 NFSERVICE
+ * @package   NFHub\CoraBoleto\Tools
+ * @author    Call Seven <callseven at gmail dot com>
+ * @copyright 2024 Fuganholi Sistemas - NFSERVICE
  * @license   https://opensource.org/licenses/MIT MIT
  */
 class Tools extends ToolsBase
 {
 
     /**
-     * Busca as contas Tecnospeed de uma empresa no NFHub
+     * Visualize os dados da conta que foi dada a autorização através da API Cora de uma empresa no NFHub
      */
-    function buscaContas(string $company_id = '', array $params = []) :array
+    function buscaDadosConta(string $company_id = '', array $params = []) :array
     {
         try {
             $params = array_filter($params, function($item) {
@@ -480,7 +480,7 @@ class Tools extends ToolsBase
 
         try {
 
-            $dados = $this->post('plugboleto', $dados, $params);
+            $dados = $this->post('coraboleto', $dados, $params);
 
             if ($dados['httpCode'] == 200) {
                 return $dados;
@@ -505,7 +505,7 @@ class Tools extends ToolsBase
     }
 
     /**
-     * Consulta as informações de um boleto específico no NFHub
+     * Consulta as informações de um boleto específico no NFHub para o banco Cora
      */
     public function consultaBoleto(int $id, int $company_id, array $params = []): array
     {

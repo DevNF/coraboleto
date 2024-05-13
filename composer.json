@@ -1,0 +1,21 @@
+{
+    "name": "nfhub/coraboleto",
+    "description": "Biblioteca para comunicaçao com a API de boletos do NFHub/Banco Cora",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Call Seven",
+            "email": "callseven7@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "NFHub\\CoraBoleto\\": "src/"
+        }
+    },
+    "minimum-stability": "stable",
+    "require": {
+    	"nfhub/common": "dev-master"
+    }
+}
