@@ -18,9 +18,61 @@ use CURLFile;
  */
 class Tools extends ToolsBase
 {
+    /**
+     * Busca os tokens da conta que foi dada a autorização através da API Cora de uma empresa no NFHub
+     * @param int $account_id ID da conta
+     * @param string $code Código de autorização
+     * @param int $company_id ID da empresa no nfhub
+     * @param array $params Parametros da requisição
+     */
+    public function getTokens(int $account_id, int $nfhub_account_id,string $code, int $company_id, array $params = []): array
+    {
+        try {
+            $params = array_filter($params, function($item) {
+                return $item['name'] !== 'code';
+            }, ARRAY_FILTER_USE_BOTH);
+
+            if (!empty($account_id)) {
+                $params[] = [
+                    'name' => 'account_id',
+                    'value' => $account_id
+                ];
+            }
+            if (!empty($nfhub_account_id)) {
+                $params[] = [
+                    'name' => 'nfhub_account_id',
+                    'value' => $nfhub_account_id
+                ];
+            }
+            if (!empty($code)) {
+                $params[] = [
+                    'name' => 'code',
+                    'value' => $code
+                ];
+            }
+            if (!empty($company_id)) {
+                $params[] = [
+                    'name' => 'company_id',
+                    'value' => $company_id
+                ];
+            }
+
+            $dados = $this->get('coraboleto/tokens', $params);
+
+            if (!isset($dados['body']->message)) {
+                return $dados;
+            }
+
+            throw new Exception($dados['body']->message, 1);
+        } catch (Exception $error) {
+            throw new Exception($error, 1);
+        }
+    }
 
     /**
      * Visualize os dados da conta que foi dada a autorização através da API Cora de uma empresa no NFHub
+     * @param string $company_id ID da empresa no nfhub
+     * @param array $params Parametros da requisição
      */
     function buscaDadosConta(string $company_id = '', array $params = []) :array
     {
@@ -36,7 +88,7 @@ class Tools extends ToolsBase
                 ];
             }
 
-            $dados = $this->get('/accounts', $params);
+            $dados = $this->get('coraboleto/accounts', $params);
 
             if (!isset($dados['body']->message)) {
                 return $dados;
@@ -49,422 +101,8 @@ class Tools extends ToolsBase
     }
 
     /**
-     * Cadastra uma nova conta no NFHub
-     */
-    public function cadastraConta(int $company_id, array $dados, array $params = []): array
-    {
-        if (empty($company_id)) {
-            throw new Exception("Não é possível cadastrar uma conta sem o ID da empresa", 1);
-        }
-
-        if (empty($dados)) {
-            throw new Exception("Não é possível cadastrar uma conta sem nenhuma informação", 1);
-        }
-
-        $dados['company_id'] = $company_id;
-
-        try {
-            $dados = $this->post('accounts', $dados, $params);
-
-            if ($dados['httpCode'] == 200) {
-                return $dados;
-            }
-
-            if (isset($dados['body']->message)) {
-                throw new Exception($dados['body']->message, 1);
-            }
-
-            foreach ($dados['body']->errors as $key => $error) {
-                if (strpos($key, 'position') !== false) {
-                    $errors[] = implode('; ', $error);
-                } else {
-                    $errors[] = $error;
-                }
-            }
-
-            throw new Exception("\r\n".implode("\r\n", $errors), 1);
-        } catch (Exception $error) {
-            throw new Exception($error, 1);
-        }
-    }
-
-    /**
-     * Atualiza uma conta existente no NFHub
-     */
-    public function atualizaConta(int $id, int $company_id, array $dados, array $params = []): array
-    {
-        if (empty($company_id)) {
-            throw new Exception("Não é possível atualizar uma conta sem o ID da empresa", 1);
-        }
-
-        if (empty($id)) {
-            throw new Exception("Não é possível atualizar uma conta sem o ID da conta", 1);
-        }
-
-        if (empty($dados)) {
-            throw new Exception("Não é possível atualizar uma conta sem nenhuma informação", 1);
-        }
-
-        $dados['company_id'] = $company_id;
-
-        try {
-            $dados = $this->put('accounts/'.$id, $dados, $params);
-
-            if ($dados['httpCode'] == 200) {
-                return $dados;
-            }
-
-            if (isset($dados['body']->message)) {
-                throw new Exception($dados['body']->message, 1);
-            }
-
-            foreach ($dados['body']->errors as $key => $error) {
-                if (strpos($key, 'position') !== false) {
-                    $errors[] = implode('; ', $error);
-                } else {
-                    $errors[] = $error;
-                }
-            }
-
-            throw new Exception("\r\n".implode("\r\n", $errors), 1);
-        } catch (Exception $error) {
-            throw new Exception($error, 1);
-        }
-    }
-
-    /**
-     * Atualiza uma conta existente no NFHub
-     */
-    public function consultaConta(int $id, int $company_id, array $params = []): array
-    {
-        if (empty($company_id)) {
-            throw new Exception("Não é possível consultar uma conta sem o ID da empresa", 1);
-        }
-
-        if (empty($id)) {
-            throw new Exception("Não é possível consultar uma conta sem o ID da conta", 1);
-        }
-
-        try {
-            $params = array_filter($params, function($item) {
-                return $item['name'] !== 'company_id';
-            }, ARRAY_FILTER_USE_BOTH);
-
-            if (!empty($company_id)) {
-                $params[] = [
-                    'name' => 'company_id',
-                    'value' => $company_id
-                ];
-            }
-
-            $dados = $this->get('accounts/'.$id, $params);
-
-            if ($dados['httpCode'] == 200) {
-                return $dados;
-            }
-
-            if (isset($dados['body']->message)) {
-                throw new Exception($dados['body']->message, 1);
-            }
-
-            foreach ($dados['body']->errors as $key => $error) {
-                if (strpos($key, 'position') !== false) {
-                    $errors[] = implode('; ', $error);
-                } else {
-                    $errors[] = $error;
-                }
-            }
-
-            throw new Exception("\r\n".implode("\r\n", $errors), 1);
-        } catch (Exception $error) {
-            throw new Exception($error, 1);
-        }
-    }
-
-    /**
-     * Deleta uma conta existente no NFHub
-     */
-    public function deletaConta(int $id, int $company_id, array $params = []): array
-    {
-        if (empty($company_id)) {
-            throw new Exception("Não é possível deletar uma conta sem o ID da empresa", 1);
-        }
-
-        if (empty($id)) {
-            throw new Exception("Não é possível deletar uma conta sem o ID da conta", 1);
-        }
-
-        try {
-            $params = array_filter($params, function($item) {
-                return $item['name'] !== 'company_id';
-            }, ARRAY_FILTER_USE_BOTH);
-
-            if (!empty($company_id)) {
-                $params[] = [
-                    'name' => 'company_id',
-                    'value' => $company_id
-                ];
-            }
-
-            $dados = $this->delete('accounts/'.$id, $params);
-
-            if ($dados['httpCode'] == 200) {
-                return $dados;
-            }
-
-            if (isset($dados['body']->message)) {
-                throw new Exception($dados['body']->message, 1);
-            }
-
-            foreach ($dados['body']->errors as $key => $error) {
-                if (strpos($key, 'position') !== false) {
-                    $errors[] = implode('; ', $error);
-                } else {
-                    $errors[] = $error;
-                }
-            }
-
-            throw new Exception("\r\n".implode("\r\n", $errors), 1);
-        } catch (Exception $error) {
-            throw new Exception($error, 1);
-        }
-    }
-
-    /**
-     * Busca todos os convênios
-     */
-    public function buscaConvenios(string $company_id = '', int $account_id = 0, array $params = []): array
-    {
-        if (empty($account_id)) {
-            throw new Exception("Não é possível buscar os convênios sem o ID da conta", 1);
-        }
-
-        try {
-            $params = array_filter($params, function($item) {
-                return $item['name'] !== 'company_id';
-            }, ARRAY_FILTER_USE_BOTH);
-
-            if (!empty($company_id)) {
-                $params[] = [
-                    'name' => 'company_id',
-                    'value' => $company_id
-                ];
-            }
-
-            $dados = $this->get('/accounts/'.$account_id.'/convenants', $params);
-
-            if (!isset($dados['body']->message)) {
-                return $dados;
-            }
-
-            throw new Exception($dados['body']->message, 1);
-        } catch (Exception $error) {
-            throw new Exception($error, 1);
-        }
-    }
-
-    /**
-     * Cadastra um novo convênio no NFHub
-     */
-    public function cadastraConvenio(int $company_id, int $account_id, array $dados, array $params = []): array
-    {
-        if (empty($company_id)) {
-            throw new Exception("Não é possível cadastrar o convênio sem o ID da empresa", 1);
-        }
-
-        if (empty($account_id)) {
-            throw new Exception("Não é possível cadastrar o convênio sem o ID da conta", 1);
-        }
-
-        if (empty($dados)) {
-            throw new Exception("Não é possível cadastrar o convênio sem nenhuma informação", 1);
-        }
-
-        $dados['company_id'] = $company_id;
-
-        try {
-
-            $dados = $this->post('/accounts/'.$account_id.'/convenants', $dados, $params);
-
-            if ($dados['httpCode'] == 200) {
-                return $dados;
-            }
-
-            if (isset($dados['body']->message)) {
-                throw new Exception($dados['body']->message, 1);
-            }
-
-            foreach ($dados['body']->errors as $key => $error) {
-                if (strpos($key, 'position') !== false) {
-                    $errors[] = implode('; ', $error);
-                } else {
-                    $errors[] = $error;
-                }
-            }
-
-            throw new Exception("\r\n".implode("\r\n", $errors), 1);
-        } catch (Exception $error) {
-            throw new Exception($error, 1);
-        }
-    }
-
-    /**
-     * Atualiza um convênio existente no NFHub
-     */
-    public function atualizaConvenio(int $id, int $company_id, int $account_id, array $dados, array $params = []): array
-    {
-        if (empty($id)) {
-            throw new Exception("Não é possível atualizar o convênio sem o ID do convênio", 1);
-        }
-
-        if (empty($company_id)) {
-            throw new Exception("Não é possível atualizar o convênio sem o ID da empresa", 1);
-        }
-
-        if (empty($account_id)) {
-            throw new Exception("Não é possível atualizar o convênio sem o ID da conta", 1);
-        }
-
-        if (empty($dados)) {
-            throw new Exception("Não é possível atualizar o convênio sem nenhuma informação", 1);
-        }
-
-        $dados['company_id'] = $company_id;
-
-        try {
-
-            $dados = $this->put('/accounts/'.$account_id.'/convenants/'.$id, $dados, $params);
-
-            if ($dados['httpCode'] == 200) {
-                return $dados;
-            }
-
-            if (isset($dados['body']->message)) {
-                throw new Exception($dados['body']->message, 1);
-            }
-
-            foreach ($dados['body']->errors as $key => $error) {
-                if (strpos($key, 'position') !== false) {
-                    $errors[] = implode('; ', $error);
-                } else {
-                    $errors[] = $error;
-                }
-            }
-
-            throw new Exception("\r\n".implode("\r\n", $errors), 1);
-        } catch (Exception $error) {
-            throw new Exception($error, 1);
-        }
-    }
-
-    /**
-     * Consulta um convênio existente no NFHub
-     */
-    public function consultaConvenio(int $id, int $company_id, int $account_id, array $params = []): array
-    {
-        if (empty($id)) {
-            throw new Exception("Não é possível consultar o convênio sem o ID do convênio", 1);
-        }
-
-        if (empty($company_id)) {
-            throw new Exception("Não é possível consultar o convênio sem o ID da empresa", 1);
-        }
-
-        if (empty($account_id)) {
-            throw new Exception("Não é possível consultar o convênio sem o ID da conta", 1);
-        }
-
-        try {
-            $params = array_filter($params, function($item) {
-                return $item['name'] !== 'company_id';
-            }, ARRAY_FILTER_USE_BOTH);
-
-            if (!empty($company_id)) {
-                $params[] = [
-                    'name' => 'company_id',
-                    'value' => $company_id
-                ];
-            }
-
-            $dados = $this->get('/accounts/'.$account_id.'/convenants', $params);
-
-            if ($dados['httpCode'] == 200) {
-                return $dados;
-            }
-
-            if (isset($dados['body']->message)) {
-                throw new Exception($dados['body']->message, 1);
-            }
-
-            foreach ($dados['body']->errors as $key => $error) {
-                if (strpos($key, 'position') !== false) {
-                    $errors[] = implode('; ', $error);
-                } else {
-                    $errors[] = $error;
-                }
-            }
-
-            throw new Exception("\r\n".implode("\r\n", $errors), 1);
-        } catch (Exception $error) {
-            throw new Exception($error, 1);
-        }
-    }
-
-    /**
-     * Deletaq um convênio existente no NFHub
-     */
-    public function deletaConvenio(int $id, int $company_id, int $account_id, array $params = []): array
-    {
-        if (empty($id)) {
-            throw new Exception("Não é possível deletar o convênio sem o ID do convênio", 1);
-        }
-
-        if (empty($company_id)) {
-            throw new Exception("Não é possível deletar o convênio sem o ID da empresa", 1);
-        }
-
-        if (empty($account_id)) {
-            throw new Exception("Não é possível deletar o convênio sem o ID da conta", 1);
-        }
-
-        try {
-            $params = array_filter($params, function($item) {
-                return $item['name'] !== 'company_id';
-            }, ARRAY_FILTER_USE_BOTH);
-
-            if (!empty($company_id)) {
-                $params[] = [
-                    'name' => 'company_id',
-                    'value' => $company_id
-                ];
-            }
-
-            $dados = $this->delete('/accounts/'.$account_id.'/convenants', $params);
-
-            if ($dados['httpCode'] == 200) {
-                return $dados;
-            }
-
-            if (isset($dados['body']->message)) {
-                throw new Exception($dados['body']->message, 1);
-            }
-
-            foreach ($dados['body']->errors as $key => $error) {
-                if (strpos($key, 'position') !== false) {
-                    $errors[] = implode('; ', $error);
-                } else {
-                    $errors[] = $error;
-                }
-            }
-
-            throw new Exception("\r\n".implode("\r\n", $errors), 1);
-        } catch (Exception $error) {
-            throw new Exception($error, 1);
-        }
-    }
-
-    /**
-     * Emite um ou mais boletos em lote
+     * Emite boleto da conta que foi dada a autorização através da API Cora de uma empresa no NFHub
+     *
      */
     public function emiteBoletos(int $company_id, array $dados, array $params = []): array
     {
@@ -480,7 +118,7 @@ class Tools extends ToolsBase
 
         try {
 
-            $dados = $this->post('coraboleto', $dados, $params);
+            $dados = $this->post('coraboleto/invoices', $dados, $params);
 
             if ($dados['httpCode'] == 200) {
                 return $dados;
@@ -507,7 +145,7 @@ class Tools extends ToolsBase
     /**
      * Consulta as informações de um boleto específico no NFHub para o banco Cora
      */
-    public function consultaBoleto(int $id, int $company_id, array $params = []): array
+    public function consultaBoletoNfhub(int $id, int $company_id, array $params = []): array
     {
         if (empty($id)) {
             throw new Exception("Não é possível consultar um boleto sem seu ID", 1);
@@ -529,7 +167,7 @@ class Tools extends ToolsBase
                 ];
             }
 
-            $dados = $this->get('/installments/'.$id, $params);
+            $dados = $this->get('installments/'.$id, $params);
 
             if ($dados['httpCode'] == 200) {
                 return $dados;
@@ -554,23 +192,33 @@ class Tools extends ToolsBase
     }
 
     /**
-     * Atualiza um ou mais boletos existentes em lote
+     * Consulta boletos de um período específico do banco Cora
      */
-    public function atualizaBoletos(int $company_id, array $dados, array $params = []): array
+    public function consultaBoletosCora(int $company_id, array $dados, array $params = []): array
     {
         if (empty($company_id)) {
-            throw new Exception("Não é possível emitir um boleto sem o ID da empresa", 1);
+            throw new Exception("Não é possível consultar os boletos sem o ID da empresa", 1);
         }
 
         if (empty($dados)) {
-            throw new Exception("Não é possível emitir um boleto sem nenhuma informação", 1);
+            throw new Exception("Não é possível consultar um boleto sem nenhuma informação", 1);
         }
 
-        $dados['company_id'] = $company_id;
+        $params = array_filter($params, function($item) {
+            return $item['name'] !== 'company_id';
+        }, ARRAY_FILTER_USE_BOTH);
+
+        if (!empty($company_id)) {
+            $params[] = [
+                'name' => 'company_id',
+                'value' => $company_id
+            ];
+        }
+
+        $params = array_merge($params, $dados);
 
         try {
-
-            $dados = $this->put('plugboleto', $dados, $params);
+            $dados = $this->get('coraboleto/invoices/', $params);
 
             if ($dados['httpCode'] == 200) {
                 return $dados;
@@ -594,22 +242,24 @@ class Tools extends ToolsBase
         }
     }
 
-    /**
-     * Gera o PDF de um ou mais boletos existentes em lote
+     /**
+     * Consulta as informações de um boleto específico no NFHub para o banco Cora
+     * @param int $id ID do boleto no nfhub
+     * @param int $company_id ID da empresa no nfhub
      */
-    public function pdfBoletos(int $company_id, array $ids = [], array $params = []): array
+    public function consultaBoletoCora(int $id, int $company_id, array $params = []): array
     {
-        if (empty($company_id)) {
-            throw new Exception("Não é possível gera o PDF de um boleto sem o ID da empresa", 1);
+        if (empty($id)) {
+            throw new Exception("Não é possível consultar um boleto sem seu ID", 1);
         }
 
-        if (empty($ids)) {
-            throw new Exception("Não é possível gera o PDF de boletos sem o id de pelo menos um boleto", 1);
+        if (empty($company_id)) {
+            throw new Exception("Não é possível consultar um boleto sem o ID da empresa", 1);
         }
 
         try {
             $params = array_filter($params, function($item) {
-                return !in_array($item['name'], ['company_id', 'installments']);
+                return $item['name'] !== 'company_id';
             }, ARRAY_FILTER_USE_BOTH);
 
             if (!empty($company_id)) {
@@ -619,15 +269,7 @@ class Tools extends ToolsBase
                 ];
             }
 
-            if (!empty($ids)) {
-                $params[] = [
-                    'name' => 'installments',
-                    'value' => implode(',', $ids)
-                ];
-            }
-
-            $this->setDecode(false);
-            $dados = $this->get('plugboleto/print', $params);
+            $dados = $this->get('coraboleto/invoices/'.$id, $params);
 
             if ($dados['httpCode'] == 200) {
                 return $dados;
@@ -652,9 +294,260 @@ class Tools extends ToolsBase
     }
 
     /**
-     * Descarta um ou mais boletos existentes em lote
+     * Consulta saldo de uma conta no Banco Cora
+     *
+     * @param int $company_id ID da empresa no nfhub
      */
-    public function descartaBoletos(int $company_id, array $ids = [], array $params = []): array
+    public function consultaSaldo(int $company_id, array $params = []): array
+    {
+        if (empty($company_id)) {
+            throw new Exception("Não é possível consultar saldo sem o ID da empresa", 1);
+        }
+
+        try {
+            $params = array_filter($params, function($item) {
+                return $item['name'] !== 'company_id';
+            }, ARRAY_FILTER_USE_BOTH);
+
+            if (!empty($company_id)) {
+                $params[] = [
+                    'name' => 'company_id',
+                    'value' => $company_id
+                ];
+            }
+
+            $dados = $this->get('coraboleto/balance', $params);
+
+            if ($dados['httpCode'] == 200) {
+                return $dados;
+            }
+
+            if (isset($dados['body']->message)) {
+                throw new Exception($dados['body']->message, 1);
+            }
+
+            foreach ($dados['body']->errors as $key => $error) {
+                if (strpos($key, 'position') !== false) {
+                    $errors[] = implode('; ', $error);
+                } else {
+                    $errors[] = $error;
+                }
+            }
+
+            throw new Exception("\r\n".implode("\r\n", $errors), 1);
+        } catch (Exception $error) {
+            throw new Exception($error, 1);
+        }
+    }
+     /**
+     * Atualiza um boleto específico no NFHub para o banco Cora
+     * Se houver boleto será deletado e criado um novo (não exite atualização)
+     * @param int $id ID do boleto no nfhub
+     * @param int $company_id ID da empresa no nfhub
+     */
+    public function atualizaCobranca(int $id, int $company_id, array $dados, array $params = []): array
+    {
+        if (empty($company_id)) {
+            throw new Exception("Não é possível emitir um boleto sem o ID da empresa", 1);
+        }
+
+        if (empty($id)) {
+            throw new Exception("Não é possível emitir um boleto sem o ID do boleto", 1);
+        }
+
+        if (empty($dados)) {
+            throw new Exception("Não é possível emitir um boleto sem nenhuma informação", 1);
+        }
+
+        $dados['company_id'] = $company_id;
+        $dados['installment_hub_id'] = $id;
+
+        try {
+
+            $dados = $this->put('coraboleto', $dados, $params);
+
+            if ($dados['httpCode'] == 200) {
+                return $dados;
+            }
+
+            if (isset($dados['body']->message)) {
+                throw new Exception($dados['body']->message, 1);
+            }
+
+            foreach ($dados['body']->errors as $key => $error) {
+                if (strpos($key, 'position') !== false) {
+                    $errors[] = implode('; ', $error);
+                } else {
+                    $errors[] = $error;
+                }
+            }
+
+            throw new Exception("\r\n".implode("\r\n", $errors), 1);
+        } catch (Exception $error) {
+            throw new Exception($error, 1);
+        }
+    }
+
+    /**
+     * Deleta um boleto específico no NFHub para o banco Cora
+     * @param int $id ID do boleto no nfhub
+     * @param int $company_id ID da empresa no nfhub
+     *
+     */
+    public function cancelaBoleto(int $id, int $company_id, array $params = []): array
+    {
+        if (empty($company_id)) {
+            throw new Exception("Não é possível descartar um boleto sem o ID da empresa", 1);
+        }
+
+        if (empty($id)) {
+            throw new Exception("Não é possível realizar o descarte de boletos sem o id de pelo menos um boleto", 1);
+        }
+
+        try {
+            $params = array_filter($params, function($item) {
+                return !in_array($item['name'], ['company_id']);
+            }, ARRAY_FILTER_USE_BOTH);
+
+            if (!empty($company_id)) {
+                $params[] = [
+                    'name' => 'company_id',
+                    'value' => $company_id
+                ];
+            }
+
+            if (!empty($id)) {
+                $params[] = [
+                    'name' => 'installment_hub_id',
+                    'value' => $id
+                ];
+            }
+
+            $dados = $this->delete('coraboleto', $params);
+
+            if ($dados['httpCode'] == 200) {
+                return $dados;
+            }
+
+            if (isset($dados['body']->message)) {
+                throw new Exception($dados['body']->message, 1);
+            }
+
+            foreach ($dados['body']->errors as $key => $error) {
+                if (strpos($key, 'position') !== false) {
+                    $errors[] = implode('; ', $error);
+                } else {
+                    $errors[] = $error;
+                }
+            }
+
+            throw new Exception("\r\n".implode("\r\n", $errors), 1);
+        } catch (Exception $error) {
+            throw new Exception($error, 1);
+        }
+    }
+
+    /**
+     * Retorna o extrato  do Banco Cora
+     *
+     */
+    public function buscaExtrato(int $company_id, array $params = [])
+    {
+        if (empty($company_id)) {
+            throw new Exception("Não é possível buscar o extrato sem o ID da empresa", 1);
+        }
+        $params = array_filter($params, function($item) {
+            return !in_array($item['name'], ['company_id']);
+        }, ARRAY_FILTER_USE_BOTH);
+
+        if (!empty($company_id)) {
+            $params[] = [
+                'name' => 'company_id',
+                'value' => $company_id
+            ];
+        }
+
+        try {
+            $dados = $this->get('coraboleto/extract', $params);
+
+            if ($dados['httpCode'] == 200) {
+                return $dados;
+            }
+
+            if (isset($dados['body']->message)) {
+                throw new Exception($dados['body']->message, 1);
+            }
+
+            foreach ($dados['body']->errors as $key => $error) {
+                if (strpos($key, 'position') !== false) {
+                    $errors[] = implode('; ', $error);
+                } else {
+                    $errors[] = $error;
+                }
+            }
+
+            throw new Exception("\r\n".implode("\r\n", $errors), 1);
+        } catch (Exception $error) {
+            throw new Exception($error, 1);
+        }
+    }
+
+
+    /**
+     * Paga um boleto específico em stage (somente para testes) no NFHub para o banco Cora
+     * @param int $id ID do boleto no nfhub
+     * @param int $company_id ID da empresa no nfhub
+     * @param string $idempotencyKey Chave de identificação
+     *
+     */
+    public function pagarBoletoStage(int $id, int $company_id, int $nfhub_account_id, string $idempotencyKey, array $params = []): array
+    {
+        if (empty($company_id)) {
+            throw new Exception("Não é possível pagar um boleto sem o ID da empresa", 1);
+        }
+
+        if (empty($id)) {
+            throw new Exception("Não é possível pagar um boleto sem o id de pelo menos um boleto", 1);
+        }
+
+        try {
+            $params = array_filter($params, function($item) {
+                return !in_array($item['name'], ['company_id']);
+            }, ARRAY_FILTER_USE_BOTH);
+
+            $dados['company_id'] = $company_id;
+            $dados['installment_hub_id'] = $id;
+            $dados['nfhub_account_id'] = $nfhub_account_id;
+            $dados['idempotencyKey'] = $idempotencyKey;
+
+            $dados = $this->post('coraboleto/pay', $dados, $params);
+
+            if ($dados['httpCode'] == 200) {
+                return $dados;
+            }
+
+            if (isset($dados['body']->message)) {
+                throw new Exception($dados['body']->message, 1);
+            }
+
+            foreach ($dados['body']->errors as $key => $error) {
+                if (strpos($key, 'position') !== false) {
+                    $errors[] = implode('; ', $error);
+                } else {
+                    $errors[] = $error;
+                }
+            }
+
+            throw new Exception("\r\n".implode("\r\n", $errors), 1);
+        } catch (Exception $error) {
+            throw new Exception($error, 1);
+        }
+    }
+
+    /**
+     * Edição de notificações de um boleto
+     */
+    public function editaNotificacoesBoleto(int $company_id, array $ids = [], array $params = []): array
     {
         if (empty($company_id)) {
             throw new Exception("Não é possível descartar um boleto sem o ID da empresa", 1);
@@ -683,91 +576,7 @@ class Tools extends ToolsBase
                 ];
             }
 
-            $dados = $this->delete('plugboleto', $params);
-
-            if ($dados['httpCode'] == 200) {
-                return $dados;
-            }
-
-            if (isset($dados['body']->message)) {
-                throw new Exception($dados['body']->message, 1);
-            }
-
-            foreach ($dados['body']->errors as $key => $error) {
-                if (strpos($key, 'position') !== false) {
-                    $errors[] = implode('; ', $error);
-                } else {
-                    $errors[] = $error;
-                }
-            }
-
-            throw new Exception("\r\n".implode("\r\n", $errors), 1);
-        } catch (Exception $error) {
-            throw new Exception($error, 1);
-        }
-    }
-
-    /**
-     * Gera arquivo remessa
-     */
-    public function geraRemessa(int $company_id, array $dados, array $params = [])
-    {
-        if (empty($company_id)) {
-            throw new Exception("Não é possível gerar o arquivo remessa sem o ID da empresa", 1);
-        }
-
-        if (!isset($dados['installments']) || empty($dados['installments'])) {
-            throw new Exception("Não é possível gerar o arquivo remessa sem o id de pelo menos um boleto", 1);
-        }
-
-        $dados['company_id'] = $company_id;
-
-        try {
-            $dados = $this->post('plugboleto/remittance', $dados, $params);
-
-            if ($dados['httpCode'] == 200) {
-                return $dados;
-            }
-
-            if (isset($dados['body']->message)) {
-                throw new Exception($dados['body']->message, 1);
-            }
-
-            foreach ($dados['body']->errors as $key => $error) {
-                if (strpos($key, 'position') !== false) {
-                    $errors[] = implode('; ', $error);
-                } else {
-                    $errors[] = $error;
-                }
-            }
-
-            throw new Exception("\r\n".implode("\r\n", $errors), 1);
-        } catch (Exception $error) {
-            throw new Exception($error, 1);
-        }
-    }
-
-    /**
-     * Processa arquivo retorno
-     */
-    public function processaRetorno(int $company_id, array $dados, array $file, array $params = [])
-    {
-        if (empty($company_id)) {
-            throw new Exception("Não é possível processar o arquivo retorno sem o ID da empresa", 1);
-        }
-
-        if (!isset($file['path']) || empty($file['path']) || !isset($file['type']) || empty($file['type']) || !isset($file['name']) || empty($file['name'])) {
-            throw new Exception("Não é possível processar o arquivo retorno sem o caminho, tipo ou nome do mesmo", 1);
-        }
-
-        $dados['company_id'] = $company_id;
-
-        try {
-            $cfile = new CURLFile($file['path'], $file['type'], $file['name']);
-            $dados['return'] = $cfile;
-
-            $this->setUpload(true);
-            $dados = $this->post('plugboleto/return', $dados, $params);
+            $dados = $this->put('coraboleto/notifications', $params);
 
             if ($dados['httpCode'] == 200) {
                 return $dados;
